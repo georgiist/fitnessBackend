@@ -4,6 +4,8 @@ module.exports = app => {
   let router = require("express").Router();
 
   router.post("/sendEmail", fitnessController.sendEmail);
+  router.post("/login", fitnessController.login);
+  router.post("/signUp", fitnessController.signUp);
 
   app.use("/api", router);
 };
