@@ -1,4 +1,4 @@
-let nodemailer = require('nodemailer');
+let nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const uri =
   "mongodb+srv://dani99:ChichoMitko@cluster0.2zjugut.mongodb.net/?retryWrites=true&w=majority";
@@ -17,8 +17,8 @@ let transporter = nodemailer.createTransport({
   port: 2525,
   auth: {
     user: "409a6350c95676",
-    pass: "5e46021b33a63d"
-  }
+    pass: "5e46021b33a63d",
+  },
 });
 
 exports.sendEmail = async (req, res) => {
@@ -31,15 +31,14 @@ exports.sendEmail = async (req, res) => {
   console.log("Message sent: %s", info.messageId);
 
   res.send({ message: "Email was sent successfully." });
-}
+};
 
 exports.login = async (req, res) => {
-  console.log(req.body);
   await makeConnection();
   let user = await client
     .db("fitness")
     .collection("users")
-    .findOne({ email: req.body.email })
+    .findOne({ email: req.body.email });
   if (user) {
     let isPasswordValid = bcrypt.compareSync(req.body.password, user.password);
     if (!isPasswordValid) {
@@ -47,35 +46,165 @@ exports.login = async (req, res) => {
         error: "Invalid password!",
       });
     } else {
-
       res.status(200).json({
-        email: req.body.email,
+        user: user,
         message: "Login successfully!",
       });
     }
   } else {
     res.status(401).send({ error: "User not found!" });
   }
-}
+};
 
-exports.signUp = async (req, res) => {
-
+exports.addNewProgram = async (req, res) => {
   await makeConnection();
-  let user = await client.db("fitness").collection("users").insertOne({
-    email: req.body.email,
-    password: bcrypt.hashSync(req.body.password, 10),
-    firstName: req.body.firstName,
-    lastName: req.body.lastName,
-  });
+
+  const result = await client
+    .db("fitness")
+    .collection("users")
+    .updateOne(
+      { email: req.body.email },
+      {
+        $set: {
+          diets: {
+            dietGymDayDinner: req.body.dietGymDayDinner,
+            dietGymDayFirstSnack: req.body.dietGymDayFirstSnack,
+            dietGymDayLunch: req.body.dietGymDayLunch,
+            dietGymDayBreakfast: req.body.dietGymDayBreakfast,
+            dietGymDaySecondSnack: req.body.dietGymDaySecondSnack,
+            dietRestDayBreakfast: req.body.dietRestDayBreakfast,
+            dietRestDayDinner: req.body.dietRestDayDinner,
+            dietRestDayFirstSnack: req.body.dietRestDayFirstSnack,
+            dietRestDayLunch: req.body.dietRestDayLunch,
+            dietRestDaySecondSnack: req.body.dietRestDaySecondSnack,
+          },
+          program: {
+            monday: req.body.monday,
+            tuesday: req.body.tuesday,
+            wednesday: req.body.wednesday,
+            thursday: req.body.thursday,
+            friday: req.body.friday,
+            saturday: req.body.saturday,
+            sunday: req.body.sunday,
+          },
+        },
+      }
+    );
+
+  if (result.matchedCount) {
+    res.status(200).send({
+      message: "Program added successfully!",
+    });
+  } else {
+    res.send({ error: "There was an issue when adding program and diet" });
+  }
+};
+
+exports.createRequest = async (req, res) => {
+  await makeConnection();
+  const userData = await client
+    .db("fitness")
+    .collection("users")
+    .findOne({ email: req.body.email });
+
+  const result = await client
+    .db("fitness")
+    .collection("users")
+    .updateOne(
+      { email: req.body.email },
+      {
+        $set: {
+          hasSentRequest: true,
+        },
+      }
+    );
+  const request = await client
+    .db("fitness")
+    .collection("programRequests")
+    .insertOne({
+      email: req.body.email,
+      weight: req.body.weight,
+      height: req.body.height,
+      comment: req.body.comment,
+      activityLevel: req.body.activityLevel,
+      goal: req.body.goal,
+      gender: userData.gender,
+      date: Date.now(),
+      names: `${userData.firstName} ${userData.lastName}`,
+    });
+
+  if (request && result.matchedCount) {
+    res.status(200).send({
+      message: "Created request successfully!",
+    });
+  } else {
+    res.send({ error: "There was an issue when creating request" });
+  }
+};
+
+exports.getUserData = async (req, res) => {
+  await makeConnection();
+  const userData = await client
+    .db("fitness")
+    .collection("users")
+    .findOne({ email: req.body.currentUserEmail });
+
+  if (userData) {
+    res.send({
+      id: userData._id,
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      diets: userData.diets,
+      program: userData.program,
+      profileImage: userData?.profileImage,
+      gender: userData.gender,
+      isAdmin: userData?.isAdmin,
+      hasSentRequest: userData?.hasSentRequest,
+    });
+  }
+};
+
+exports.getRequestData = async (req, res) => {
+  await makeConnection();
+  const requestData = await client
+    .db("fitness")
+    .collection("programRequests")
+    .findOne({ _id: new mongodb.ObjectID(req.params.id) });
+
+  res.send(requestData);
+};
+
+exports.getProgramRequests = async (req, res) => {
+  await makeConnection();
+  const programRequests = await client
+    .db("fitness")
+    .collection("programRequests")
+    .find()
+    .toArray();
+  res.send(programRequests);
+};
+exports.signUp = async (req, res) => {
+  await makeConnection();
+
+  let user = await client
+    .db("fitness")
+    .collection("users")
+    .insertOne({
+      email: req.body.email,
+      password: bcrypt.hashSync(req.body.password, 10),
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      gender: req.body.gender,
+      profileImage: req.body.profileImage,
+    });
 
   if (user) {
-    res
-      .status(200)
-      .send({
-        email: req.body.email,
-        message: "Signed up successfully!",
-      });
+    res.status(200).send({
+      user: user,
+      message: "Signed up successfully!",
+    });
   } else {
-    res.send({ error: "There was an issue when registering." });
+    res.send({ error: "There was an issue when signing up." });
   }
-}
+};
