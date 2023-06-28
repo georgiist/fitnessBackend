@@ -30,7 +30,7 @@ exports.sendEmail = async (req, res) => {
   });
   console.log("Message sent: %s", info.messageId);
 
-  res.send({ message: "Email was sent successfully." });
+  res.send({ message: "Имейлът е изпратен успешно." });
 };
 
 exports.login = async (req, res) => {
@@ -43,16 +43,16 @@ exports.login = async (req, res) => {
     let isPasswordValid = bcrypt.compareSync(req.body.password, user.password);
     if (!isPasswordValid) {
       res.status(401).send({
-        error: "Invalid password!",
+        error: "Грешна парола!",
       });
     } else {
       res.status(200).json({
         user: user,
-        message: "Login successfully!",
+        message: "Успешен вход!",
       });
     }
   } else {
-    res.status(401).send({ error: "User not found!" });
+    res.status(401).send({ error: "Не е намерен такъв потребител!" });
   }
 };
 
@@ -91,12 +91,17 @@ exports.addNewProgram = async (req, res) => {
       }
     );
 
-  if (result.matchedCount) {
+  const deletionResult = await client
+    .db("fitness")
+    .collection("programRequests")
+    .deleteOne({ email: req.body.email });
+
+  if (result.matchedCount && deletionResult.deletedCount) {
     res.status(200).send({
-      message: "Program added successfully!",
+      message: "Програмата е изтрита успешно!",
     });
   } else {
-    res.send({ error: "There was an issue when adding program and diet" });
+    res.send({ error: "Грешка по време на изтриване на програмата!" });
   }
 };
 
@@ -135,10 +140,10 @@ exports.createRequest = async (req, res) => {
 
   if (request && result.matchedCount) {
     res.status(200).send({
-      message: "Created request successfully!",
+      message: "Успешно изпратена заявка!",
     });
   } else {
-    res.send({ error: "There was an issue when creating request" });
+    res.send({ error: "Грешка при изпращането на заявката!" });
   }
 };
 
@@ -202,9 +207,9 @@ exports.signUp = async (req, res) => {
   if (user) {
     res.status(200).send({
       user: user,
-      message: "Signed up successfully!",
+      message: "Успешна регистрация!",
     });
   } else {
-    res.send({ error: "There was an issue when signing up." });
+    res.send({ error: "Грешка по време на регистрацията!" });
   }
 };
