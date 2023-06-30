@@ -66,6 +66,7 @@ exports.addNewProgram = async (req, res) => {
       { email: req.body.email },
       {
         $set: {
+          hasSentRequest: false,
           diets: {
             dietGymDayDinner: req.body.dietGymDayDinner,
             dietGymDayFirstSnack: req.body.dietGymDayFirstSnack,
